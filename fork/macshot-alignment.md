@@ -25,9 +25,9 @@
 
 ## 2. 叠层设计
 
-### 2.1 一个开关：`interface/ui_profile = snow | macshot`
+### 2.1 一个开关：`ui_profile = snow | macshot`
 
-- 运行时切换，默认 `snow`。上游行为完全不变，以后也可以拿去和上游讨论合并（上游 README：功能 PR 需要先开讨论）。
+- 默认 `snow`。第一版是编译开关；以后要做成运行时切换的设置项，再动 `configurationschema.cpp`。上游行为完全不变，以后也可以拿去和上游讨论合并（上游 README：功能 PR 需要先开讨论）。
 - 所有 fork 逻辑都通过 `UiProfile` 读取，不散落在各处 `if`。
 
 ### 2.2 目录
@@ -42,21 +42,28 @@ snow_shot/src/presentation/postcapture/   # 新增：浮动缩略图 U5
 
 每处只加几行，统一标记 `// FORK(macshot):`，用 `git grep "FORK(macshot)"` 就能列全。
 
-| 接缝 | 文件 | 近 6 个月上游提交数 | 做法 |
-|---|---|---|---|
-| 工具栏定位 | `src/presentation/toolbar/screenshottoolbarplacement.h` | 低（`toolbar/` 共 71，此文件很少） | `screenshotToolbarPlacement()` 先问 `UiProfile` 要策略；macshot 策略=水平居中，放不下再翻到上方 |
-| 主题 token | `src/presentation/styles/thememanager.cpp` | 9 | 加一个 `macshot` 预设，覆盖 `colorPrimary` / `colorBgBase` / 圆角 / 面板透明度 |
-| 工具栏面板皮肤 | `src/presentation/tools/screenshottoolbarmainpanel.cpp` | 9 | 已有 skin 机制（`interface/toolbar_skin_path`），按 profile 选皮肤 |
-| 动作栏拆分 | `src/presentation/tools/screenshotfloatingtoolpalettewindow.cpp` | 27 | 按 `LayoutKind::ActionTools` 拆出第二个竖排窗口，定位到选区右侧 |
-| 导出完成 | `src/presentation/services/screenshotexportcoordinator.cpp` | 9 | 发一个信号，浮动缩略图订阅 |
+提交数是上游全部历史（仓库从 2026-09-06 开始，约 7 周、954 次提交），越高越容易冲突。
 
-**刻意不碰**（上游改得太频繁，冲突会很痛）：
-- `tools/screenshottoolpalette.cpp`：近 6 个月 127 次提交，约 1.09 万行
-- `overlay/`：151 次
-- `selection/`：79 次
-- `ant_design_qt/`：102 次
+| 接缝 | 文件 | 上游提交数 | 做法 |
+|---|---|---|---|
+| 主题 token | 不改上游：启动后调用 `adqt::theme::ThemeManager::setConfig/setSeed`，工具栏单独用 `setScopeOverride(toolbarWindow, …)`（`ant_design_qt/.../theme/theme_manager.h:33`） | 0 | 圆角 10–12、灰色主色、`backgroundOpacity < 1` 半透明。只换样式，不动布局 |
+| 工具栏定位 | `src/presentation/toolbar/screenshottoolbarplacement.h`，调用点 `toolbar/screenshottoolbarpresenter.cpp:192-198` | 1 / 17 | 把 `screenshotToolbarPlacement()` 换成可注入的策略；macshot 策略 = 水平居中，放不下再翻到上方 |
+| 面板常量和绘制 | `include/.../screenshottoolbarmainpanel.h:33-39`（ControlSize 32、PanelRadius 8…），`tools/screenshottoolbarmainpanel.cpp:53-61, 262-300` | 8 / 9 | 收成一个 `ToolbarSkin` 结构，默认值等于现状 |
+| 工具栏窗口工厂 | `overlay/screenshotoverlayuihost.cpp:429`（`new ScreenshotToolbarWindow(...)`） | 19 | 改成走工厂。macshot 的"底部绘图 + 右侧竖排动作"结构在这里换，新工具栏实现 `ScreenshotToolbarCommandSink` 接口（`include/.../screenshottoolbarcommands.h:23`） |
+| 导出完成 | `services/screenshotexportcoordinator.cpp` | 9 | 发一个信号，浮动缩略图订阅 |
+| 构建 | 新建 `cmake/SnowShotSkinMacshot.cmake`，参照已有的 `cmake/SnowShotMini.cmake` 双版本写法；`snow_shot/CMakeLists.txt` 只加一行 include | 431（只加 1 行） | 编译期开关 `SNOW_SHOT_UI_SKIN=macshot` |
+
+**刻意不碰**（上游一周改好几次，冲突会很痛）：
+- `snow_shot/CMakeLists.txt`：431 次（只允许上面那 1 行 include）
+- `storage/configurationschema.cpp`：204 次。所以 `ui_profile` 这个设置项**不往这里加**，第一版先用编译开关或单独的配置文件
+- `services/screenshotcontroller.cpp`：160 次
+- `tools/screenshottoolpalette.cpp`：127 次，约 1.09 万行，而且主栏只支持横排
+- `tools/screenshottoolpalettestylecontrols.cpp`：47 次，约 7.5k 行，是所有工具子选项行
+- 图标 SVG（`components/icons/resources/`）：60 次。要换图标就加一套新文件名，不要原地覆盖
 
 需要改它们的行为时，优先找已有的配置项或信号。
+
+**取舍**：右侧竖排动作栏（U2）没有现成接缝，只能走工厂换整个工具栏窗口。难点是 7.5k 行的子选项行要么复用要么重写，所以 U2 放在第一版最后做。
 
 ### 2.4 分支与同步
 
@@ -87,7 +94,7 @@ Snow Shot 独有、保留不动：MCP server、表格 / 公式 / 图片转 Markd
 
 ## 4. 建议的第一版（只做交互，不碰引擎）
 
-1. `UiProfile` + 设置项（新文件 + 设置页一行）
+1. `UiProfile` + `cmake/SnowShotSkinMacshot.cmake` 编译开关（先不进设置页，避开 `configurationschema.cpp`）
 2. U1 居中定位
 3. U3 / 视觉：`macshot` 主题 token + 工具栏皮肤
 4. U4 尺寸胶囊放到选区顶部居中
