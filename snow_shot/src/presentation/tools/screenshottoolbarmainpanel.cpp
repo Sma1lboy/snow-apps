@@ -3,6 +3,8 @@
 #include "screenshottoolpalettebuttons.h"
 #include "snow_shot/presentation/components/icons/iconrenderutils.h"
 #include "snow_shot/presentation/mainwindowskincontroller.h"
+#include "snow_shot/presentation/profile/macshottheme.h" // FORK(macshot)
+#include "snow_shot/presentation/profile/uiskin.h"     // FORK(macshot)
 #include "snow_shot/presentation/styles/themecolorscheme.h"
 #include "snow_shot/presentation/styles/thememanager.h"
 #include "snow_shot/storage/applicationstorage.h"
@@ -51,16 +53,25 @@ constexpr QColor kShadowColor(0, 0, 0, 90);
 #endif
 
 QColor toolbarSurfaceColor() {
+    if constexpr (snow_shot::presentation::profile::kMacshotSkin) { // FORK(macshot)
+        return snow_shot::presentation::profile::macshot::toolbarSurfaceColor();
+    }
     const auto scheme = snow_shot::presentation::styles::generateThemeColorScheme();
     return scheme.map.colorBgContainer.isValid() ? scheme.map.colorBgContainer : QColor(Qt::white);
 }
 
 QColor toolbarSeparatorColor() {
+    if constexpr (snow_shot::presentation::profile::kMacshotSkin) { // FORK(macshot)
+        return snow_shot::presentation::profile::macshot::toolbarSeparatorColor();
+    }
     const auto scheme = snow_shot::presentation::styles::generateThemeColorScheme();
     return scheme.map.colorBorder.isValid() ? scheme.map.colorBorder : QColor(0xd9, 0xd9, 0xd9);
 }
 
 QColor toolbarDragHandleColor() {
+    if constexpr (snow_shot::presentation::profile::kMacshotSkin) { // FORK(macshot)
+        return snow_shot::presentation::profile::macshot::toolbarDragHandleColor();
+    }
     const auto scheme = snow_shot::presentation::styles::generateThemeColorScheme();
     return scheme.map.colorTextQuaternary.isValid() ? scheme.map.colorTextQuaternary
                                                     : QColor(0xbf, 0xbf, 0xbf);
@@ -93,6 +104,10 @@ ScreenshotToolPaletteButtonMetrics buttonMetrics(qreal scale) {
 
 ScreenshotToolbarPanel::ScreenshotToolbarPanel(QWidget* parent) : QFrame(parent) {
     setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
+    if constexpr (snow_shot::presentation::profile::kMacshotSkin) { // FORK(macshot)
+        adqt::theme::ThemeManager::instance().setScopeOverride(
+            this, snow_shot::presentation::profile::macshot::toolbarThemeOverride());
+    }
     setPanelScale(1.0);
     const auto& themeManager = snow_shot::presentation::styles::ThemeManager::instance();
     connect(&themeManager, &snow_shot::presentation::styles::ThemeManager::themeChanged, this,
@@ -259,7 +274,10 @@ void ScreenshotToolbarPanel::setPanelScale(qreal scale) {
         return;
     }
     m_panelScale = scale;
-    m_panelRadius = scaledMetric(screenshot_action_toolbar::PanelRadius, scale);
+    m_panelRadius = scaledMetric(snow_shot::presentation::profile::kMacshotSkin // FORK(macshot)
+                                     ? snow_shot::presentation::profile::macshot::kPanelRadius
+                                     : screenshot_action_toolbar::PanelRadius,
+                                 scale);
 #if !defined(Q_OS_MACOS)
     auto* shadow = qobject_cast<QGraphicsDropShadowEffect*>(graphicsEffect());
     if (shadow == nullptr) {

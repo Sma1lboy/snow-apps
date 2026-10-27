@@ -111,3 +111,21 @@ Snow Shot 独有、保留不动：MCP server、表格 / 公式 / 图片转 Markd
 - 选区信息面板：`src/presentation/selection/screenshotselectiontoolbarwidget.cpp`
 - 编辑器窗口：`src/presentation/imageediting/imageeditingwindow.cpp`
 - 历史：`src/presentation/components/screenshothistorypagewidget.cpp`；可重新编辑的标注：`include/snow_shot/presentation/screenshothistorytypes.h:40`
+
+## 5. 第一版状态
+
+已完成：编译开关、工具栏居中、macshot 主题（`macshot-ui` 分支）。
+
+构建时打开 macshot 皮肤（不加这个参数就是原版）：
+
+```sh
+cmake --preset snow-shot-msvc-fast -DSNOW_SHOT_UI_SKIN=macshot
+```
+
+改动范围：
+
+- 新文件：`cmake/SnowShotUiSkin.cmake`、`snow_shot/include/snow_shot/presentation/profile/*.h`、`snow_shot/src/presentation/toolbar/skintoolbarplacement.h`、`snow_shot/tests/ui_skin_placement_tests.cpp`
+- 改动的上游文件（`git grep "FORK(macshot)"`）：`snow_shot/CMakeLists.txt` 1 行，`toolbar/screenshottoolbarpresenter.cpp` 2 行，`tools/screenshottoolbarmainpanel.cpp` 约 20 行
+
+已验证：居中定位的单元测试（MSVC `/W4 /WX`，Qt 6.11.3）通过；改动的两个上游源文件在两种皮肤下都能通过 MSVC 语法检查。
+还没验证：完整 CMake 配置和整包构建（本机没有 vcpkg 和 Qt 6.12 的构建环境），以及实际截图时的观感。

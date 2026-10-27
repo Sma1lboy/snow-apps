@@ -19,6 +19,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../cmake")
 include(RustStaticLibrary)
 include(SnowShotSourceDependencies)
+include(SnowShotUiSkin) # FORK(macshot)
 snow_configure_windows_architecture()
 snow_detect_rust_target(SNOW_SHOT_RUST_TARGET)
 

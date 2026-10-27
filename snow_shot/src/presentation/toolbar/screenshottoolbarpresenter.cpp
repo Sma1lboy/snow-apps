@@ -1,5 +1,5 @@
 #include "snow_shot/presentation/screenshottoolbarpresenter.h"
-#include "screenshottoolbarplacement.h"
+#include "skintoolbarplacement.h" // FORK(macshot)
 
 #include "../capture/screenshotcaptureperfinstrumentation.h"
 #include "snow_shot/presentation/screenshotdisplaysession.h"
@@ -189,7 +189,7 @@ void ScreenshotToolbarPresenter::moveToolbar(const ScreenshotToolbarPresentation
     }
 
     const ScreenshotAnchoredToolbarPlacement placement =
-        snow_shot::presentation::screenshotToolbarPlacement(
+        snow_shot::presentation::skinToolbarPlacement( // FORK(macshot)
             state, m_geometry, display, toolbarGeometry, placementGeometry.logicalBounds,
             kSelectionToolbarGap);
 
